@@ -8,23 +8,25 @@ import secrets
 from dotenv import load_dotenv
 import base64
 
-app = FastAPI()
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8501"],  # Streamlit default port
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 load_dotenv()
 
 # GitHub OAuth settings
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
-GITHUB_REDIRECT_URI = "http://localhost:8000/auth/github/callback"
+GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI", "http://localhost:8000/auth/github/callback")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8501")
+app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[FRONTEND_URL, "https://yourdomain.com"],  # Add your production frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 # In-memory storage for demo (use proper database in production)
 user_tokens = {}
@@ -101,7 +103,7 @@ async def github_callback(code: str, state: str):
         del auth_states[state]
 
         # Redirect to frontend with user_id
-        return RedirectResponse(f"http://localhost:8501/?user_id={user_id}")
+        return RedirectResponse(f"{FRONTEND_URL}/?user_id={user_id}")
 
 
 @app.get("/user/{user_id}/repos")
